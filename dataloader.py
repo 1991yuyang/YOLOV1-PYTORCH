@@ -6,6 +6,7 @@ import numpy as np
 import torch as t
 from loss import YOLOLoss
 from model import YOLORES
+from numpy import random as rd
 
 
 class YoloSet(data.Dataset):
@@ -25,6 +26,7 @@ class YoloSet(data.Dataset):
         """
         assert img_type.lower() in ["jpg", "png"], "img_type should be jpg or png"
         assert mode.lower() in ["train", "val"], "mode should be train or val"
+        self.mode = mode.lower()
         self.voc_Annotations_dir = voc_Annotations_dir
         self.voc_Main_dir = voc_Main_dir
         assert os.path.exists(os.path.join(voc_Main_dir, "train.txt")) and os.path.exists(os.path.join(voc_Main_dir, "val.txt")), "train.txt and val.txt should under voc_Main_dir"
@@ -47,6 +49,8 @@ class YoloSet(data.Dataset):
         img_path = self.img_paths[index]
         xml_path = self.xml_paths[index]
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
+        if self.mode == "train":
+            img = self.data_aug(img)
         img_height = img.shape[0]
         img_width = img.shape[1]
         img = cv2.resize(img, (self.img_size, self.img_size))
@@ -91,6 +95,35 @@ class YoloSet(data.Dataset):
     def __len__(self):
         return len(self.img_paths)
 
+    def data_aug(self, img):
+        img = self.random_bright(img)
+        img = self.random_contrast(img)
+        img = self.random_swap(img)
+        return img
+
+    def random_bright(self, img, delta=32):
+        if rd.random() < 0.5:
+            delta = rd.uniform(-delta, delta)
+            img = img + delta
+            img = img.clip(min=0, max=255)
+        return img
+
+    def random_swap(self, img):
+        perms = ((0, 1, 2), (0, 2, 1),
+                 (1, 0, 2), (1, 2, 0),
+                 (2, 0, 1), (2, 1, 0))
+        if rd.random() < 0.5:
+            swap = perms[rd.randint(0, len(perms))]
+            img = img[:, :, swap]
+        return img
+
+    def random_contrast(self, img, lower=0.5, upper=1.5):
+        if rd.random() < 0.5:
+            alpha = rd.uniform(lower, upper)
+            img = img * alpha
+            img = img.clip(min=0, max=255)
+        return img
+
 
 if __name__ == "__main__":
     B = 2
@@ -108,6 +141,7 @@ if __name__ == "__main__":
     for img, label, orig_img_size in s:
         model_output = model(img.cuda(0))
         criterion(model_output.cuda(0), label.cuda(0), orig_img_size.cuda(0))
+
 
 
 
