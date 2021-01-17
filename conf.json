@@ -20,7 +20,7 @@
     "batch_size": 8,
     "dataloader_num_workers": 8,
     "epoch": 120,
-    "weight_decay": 0.0001,
+    "weight_decay": 0.0008,
     "lr_shrink_rate": 0.1,
     "lr_shrink_epoch": 30
   },
@@ -29,7 +29,7 @@
     "test_set_dir": "/home/yuyang/dataset/VOCdevkit/VOC2012/JPEGImages",
     "output_result_dir": "/home/yuyang/dataset/output_result",
     "nms_iou_thresh": 0.05,
-    "confidence_thresh": 0.3,
+    "confidence_thresh": 0.1,
     "use_cuda": 1
   }
 }
