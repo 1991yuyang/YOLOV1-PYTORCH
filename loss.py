@@ -108,13 +108,6 @@ class YOLOLoss(nn.Module):
         loss_conf_noobj = t.sum(pred_noobj_conf_info ** 2) * self.lamda_noobj
         return loss_class + loss_xy + loss_wh + loss_conf_obj + loss_conf_noobj
 
-    def calc_one_grid_obj_bbox_loss(self, highest_iou_target_class_info, highest_iou_taget_xy_info, highest_iou_target_wh_info, highes_iou_target_conf_info, current_grid_pred_class_info, current_grid_pred_xy_info, current_grid_pred_wh_info, current_grid_pred_conf_info):
-        loss_class = t.sum((highest_iou_target_class_info - current_grid_pred_class_info) ** 2)
-        loss_xy = t.sum((highest_iou_taget_xy_info - current_grid_pred_xy_info.view((-1, 2))) ** 2) * self.lamda_coord
-        loss_wh = t.sum((highest_iou_target_wh_info ** 0.5 - current_grid_pred_wh_info.view((-1, 2)) ** 0.5) ** 2) * self.lamda_coord
-        loss_conf = t.sum((highes_iou_target_conf_info - current_grid_pred_conf_info) ** 2)
-        return loss_class + loss_xy + loss_wh + loss_conf
-
     def calc_noobj_conf_loss(self, noobj_bbox_pred_conf):
         return self.lamda_noobj * t.sum((noobj_bbox_pred_conf) ** 2)
 
