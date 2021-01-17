@@ -1,0 +1,35 @@
+{
+  "common": {
+    "S": 7,
+    "B": 2,
+    "num_classes": 20,
+    "classes": ["bottle", "cow", "sofa", "pottedplant", "boat", "car", "bus", "chair", "cat", "aeroplane", "person", "sheep", "diningtable", "train", "tvmonitor", "motorbike", "bird", "dog", "horse", "bicycle"],
+    "best_model_save_path": "./best.pth",
+    "epoch_model_save_path": "./epoch.pth",
+    "img_size": 448,
+    "backbone_use_resnet": 1
+  },
+  "train": {
+    "voc_Annotations_dir": "/home/yuyang/dataset/VOCdevkit/VOC2012/Annotations",
+    "voc_Main_dir": "/home/yuyang/dataset/VOCdevkit/VOC2012/ImageSets/Main",
+    "voc_JPEGImages_dir": "/home/yuyang/dataset/VOCdevkit/VOC2012/JPEGImages",
+    "image_type": "jpg",
+    "lamda_coord": 5,
+    "lamda_noobj": 0.5,
+    "lr": 0.001,
+    "batch_size": 8,
+    "dataloader_num_workers": 8,
+    "epoch": 120,
+    "weight_decay": 0.0001,
+    "lr_shrink_rate": 0.1,
+    "lr_shrink_epoch": 30
+  },
+  "test": {
+    "use_best_model": 0,
+    "test_set_dir": "/home/yuyang/dataset/VOCdevkit/VOC2012/JPEGImages",
+    "output_result_dir": "/home/yuyang/dataset/output_result",
+    "nms_iou_thresh": 0.05,
+    "confidence_thresh": 0.3,
+    "use_cuda": 1
+  }
+}
