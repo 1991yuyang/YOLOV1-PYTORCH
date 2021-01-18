@@ -50,7 +50,7 @@ class YoloSet(data.Dataset):
         xml_path = self.xml_paths[index]
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         if self.mode == "train":
-            img = self.data_aug(img)
+            img, is_flipx, is_flipy = self.data_aug(img)
         img_height = img.shape[0]
         img_width = img.shape[1]
         img = cv2.resize(img, (self.img_size, self.img_size))
@@ -69,6 +69,14 @@ class YoloSet(data.Dataset):
             ymin = float(bndbox_node.find("ymin").text)
             xmax = float(bndbox_node.find("xmax").text)
             ymax = float(bndbox_node.find("ymax").text)
+            if self.mode == "train" and is_flipx:
+                xmax_temp = xmax
+                xmax = img_width - xmin
+                xmin = img_width - xmax_temp
+            if self.mode == "train" and is_flipy:
+                ymax_temp = ymax
+                ymax = img_height - ymin
+                ymin = img_height - ymax_temp
             center_x = (xmin + xmax) / 2
             center_y = (ymin + ymax) / 2
             x_grid_index = int(center_x // grid_cell_width)
@@ -96,11 +104,13 @@ class YoloSet(data.Dataset):
         return len(self.img_paths)
 
     def data_aug(self, img):
+        img, is_flipx = self.random_flipx(img)
+        img, is_flipy = self.random_flipy(img)
         img = self.add_noise(img)
         img = self.random_bright(img)
         img = self.random_contrast(img)
         img = self.random_swap(img)
-        return img
+        return img, is_flipx, is_flipy
 
     def random_bright(self, img, delta=32):
         if rd.random() < 0.5:
@@ -135,6 +145,18 @@ class YoloSet(data.Dataset):
             img = np.clip(img, 0, 255)
         return img
 
+    def random_flipx(self, img):
+        if rd.random() < 0.5:
+            img = cv2.flip(img, 1)
+            return img, True
+        return img, False
+
+    def random_flipy(self, img):
+        if rd.random() < 0.5:
+            img = cv2.flip(img, 0)
+            return img, True
+        return img, False
+
 
 if __name__ == "__main__":
     B = 2
@@ -152,6 +174,7 @@ if __name__ == "__main__":
     for img, label, orig_img_size in s:
         model_output = model(img.cuda(0))
         criterion(model_output.cuda(0), label.cuda(0), orig_img_size.cuda(0))
+
 
 
 
