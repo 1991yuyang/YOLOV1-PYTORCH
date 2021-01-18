@@ -96,6 +96,7 @@ class YoloSet(data.Dataset):
         return len(self.img_paths)
 
     def data_aug(self, img):
+        img = self.add_noise(img)
         img = self.random_bright(img)
         img = self.random_contrast(img)
         img = self.random_swap(img)
@@ -105,6 +106,7 @@ class YoloSet(data.Dataset):
         if rd.random() < 0.5:
             delta = rd.uniform(-delta, delta)
             img = img + delta
+            img = img.astype(np.uint8)
             img = img.clip(min=0, max=255)
         return img
 
@@ -121,7 +123,16 @@ class YoloSet(data.Dataset):
         if rd.random() < 0.5:
             alpha = rd.uniform(lower, upper)
             img = img * alpha
+            img = img.astype(np.uint8)
             img = img.clip(min=0, max=255)
+        return img
+
+    def add_noise(self, img, threshold=32):
+        if rd.random() < 0.5:
+            noise = np.random.uniform(low=-1, high=1, size=img.shape)
+            img = img + noise * threshold
+            img = img.astype(np.uint8)
+            img = np.clip(img, 0, 255)
         return img
 
 
@@ -141,6 +152,7 @@ if __name__ == "__main__":
     for img, label, orig_img_size in s:
         model_output = model(img.cuda(0))
         criterion(model_output.cuda(0), label.cuda(0), orig_img_size.cuda(0))
+
 
 
 
