@@ -1,4 +1,3 @@
-# from torchvision.ops import box_iou
 import numpy as np
 import torch as t
 from numpy import random as rd
