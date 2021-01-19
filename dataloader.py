@@ -49,10 +49,10 @@ class YoloSet(data.Dataset):
         img_path = self.img_paths[index]
         xml_path = self.xml_paths[index]
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-        if self.mode == "train":
-            img, is_flipx, is_flipy = self.data_aug(img)
         img_height = img.shape[0]
         img_width = img.shape[1]
+        if self.mode == "train":
+            img, is_flipx, is_flipy, angle, rot_mat, img_height, img_width = self.data_aug(img)
         img = cv2.resize(img, (self.img_size, self.img_size))
         img = np.transpose(img / 255, axes=[2, 0, 1])
         grid_cell_width = img_width / self.S
@@ -69,6 +69,18 @@ class YoloSet(data.Dataset):
             ymin = float(bndbox_node.find("ymin").text)
             xmax = float(bndbox_node.find("xmax").text)
             ymax = float(bndbox_node.find("ymax").text)
+            if self.mode == "train":
+                point1 = np.dot(rot_mat, np.array([(xmin + xmax) / 2, ymin, 1]))
+                point2 = np.dot(rot_mat, np.array([xmax, (ymin + ymax) / 2, 1]))
+                point3 = np.dot(rot_mat, np.array([(xmin + xmax) / 2, ymax, 1]))
+                point4 = np.dot(rot_mat, np.array([xmin, (ymin + ymax) / 2, 1]))
+                concat = np.vstack((point1, point2, point3, point4))
+                concat = concat.astype(np.int32)
+                rx, ry, rw, rh = cv2.boundingRect(concat)
+                xmin = rx
+                ymin = ry
+                xmax = rx + rw
+                ymax = ry + rh
             if self.mode == "train" and is_flipx:
                 xmax_temp = xmax
                 xmax = img_width - xmin
@@ -104,13 +116,14 @@ class YoloSet(data.Dataset):
         return len(self.img_paths)
 
     def data_aug(self, img):
+        img, angle, rot_mat, img_height, img_width = self.rotate(img)
         img, is_flipx = self.random_flipx(img)
         img, is_flipy = self.random_flipy(img)
         img = self.add_noise(img)
         img = self.random_bright(img)
         img = self.random_contrast(img)
         img = self.random_swap(img)
-        return img, is_flipx, is_flipy
+        return img, is_flipx, is_flipy, angle, rot_mat, img_height, img_width
 
     def random_bright(self, img, delta=32):
         if rd.random() < 0.5:
@@ -156,6 +169,22 @@ class YoloSet(data.Dataset):
             img = cv2.flip(img, 0)
             return img, True
         return img, False
+
+    def rotate(self, img, min_angle=-30, max_angle=30, scale=1):
+        angle = rd.uniform(min_angle, max_angle)
+        w = img.shape[1]
+        h = img.shape[0]
+        rangle = np.deg2rad(angle)
+        nw = (abs(np.sin(rangle) * h) + abs(np.cos(rangle) * w)) * scale
+        nh = (abs(np.cos(rangle) * h) + abs(np.sin(rangle) * w)) * scale
+        rot_mat = cv2.getRotationMatrix2D((nw * 0.5, nh * 0.5), angle, scale)
+        rot_move = np.dot(rot_mat, np.array([(nw - w) * 0.5, (nh - h) * 0.5, 0]))
+        rot_mat[0, 2] += rot_move[0]
+        rot_mat[1, 2] += rot_move[1]
+        img = cv2.warpAffine(img, rot_mat, (int(np.ceil(nw)), int(np.ceil(nh))), flags=cv2.INTER_LANCZOS4)
+        img_height = img.shape[0]
+        img_width = img.shape[1]
+        return img, angle, rot_mat, img_height, img_width
 
 
 if __name__ == "__main__":
