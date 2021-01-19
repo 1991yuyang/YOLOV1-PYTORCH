@@ -5,6 +5,7 @@ from torch import nn, optim
 import os
 from dataloader import YoloSet
 from torch.utils import data
+import numpy as np
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
@@ -38,6 +39,8 @@ def valid_step(model, valid_loader, criterion, batch_size, B, S, image_type, voc
 
 
 def train(train_conf, common_conf):
+    every_epoch_mean_train_losses = []
+    every_epoch_mean_valid_losses = []
     current_best_valid_loss = float("inf")
     voc_Annotations_dir = train_conf["voc_Annotations_dir"]
     voc_Main_dir = train_conf["voc_Main_dir"]
@@ -75,6 +78,10 @@ def train(train_conf, common_conf):
         start_e = int(start_e)
         current_best_valid_loss = float(current_best_valid_loss)
         lr = float(lr)
+        with open("./every_epoch_mean_train_losses.txt", "r", encoding="utf-8") as file:
+            every_epoch_mean_train_losses = eval(file.read())
+        with open("./every_epoch_mean_valid_losses.txt", "r", encoding="utf-8") as file:
+            every_epoch_mean_valid_losses = eval(file.read())
     #########################################
     model = nn.DataParallel(module=model, device_ids=[0])
     model = model.cuda(0)
@@ -85,16 +92,27 @@ def train(train_conf, common_conf):
         valid_loader = iter(data.DataLoader(YoloSet(B, S, image_type, "val", voc_Annotations_dir, voc_Main_dir, voc_JPEGImages_dir, classes, img_size), batch_size=batch_size, shuffle=True, drop_last=False, num_workers=num_workers))
         all_steps = len(train_loader)
         current_step = 0
+        every_batch_train_losses = []
+        every_batch_valid_losses = []
         for d_train, l_train, orig_image_sizes in train_loader:
             model, train_loss = train_step(model, d_train, l_train, orig_image_sizes, optimizer, criterion)
             model, valid_loss = valid_step(model, valid_loader, criterion, batch_size, B, S, image_type, voc_Annotations_dir, voc_Main_dir, voc_JPEGImages_dir, classes, img_size, num_workers)
+            every_batch_train_losses.append(train_loss)
+            every_batch_valid_losses.append(valid_loss)
             current_step += 1
             print("epoch:%d/%d, step:%d/%d, train_loss:%.5f, valid_loss:%.5f" % (e, epoch, current_step, all_steps, train_loss, valid_loss))
-            if valid_loss < current_best_valid_loss:
-                current_best_valid_loss = valid_loss
-                print("saving best model......")
-                t.save(model.module.state_dict(), best_model_save_path)
-
+        mean_train_loss = float(np.mean(every_batch_train_losses))
+        mean_valid_loss = float(np.mean(every_batch_valid_losses))
+        every_epoch_mean_train_losses.append(mean_train_loss)
+        every_epoch_mean_valid_losses.append(mean_valid_loss)
+        if mean_valid_loss < current_best_valid_loss:
+            current_best_valid_loss = mean_valid_loss
+            print("saving best model......")
+            t.save(model.module.state_dict(), best_model_save_path)
+        with open("./every_epoch_mean_train_losses.txt", "w", encoding="utf-8") as file:
+            file.write(str(every_epoch_mean_train_losses))
+        with open("./every_epoch_mean_valid_losses.txt", "w", encoding="utf-8") as file:
+            file.write(str(every_epoch_mean_valid_losses))
         print("saving epoch model......")
         t.save(model.module.state_dict(), epoch_model_save_path)
         if e % lr_shrink_epoch == 0:

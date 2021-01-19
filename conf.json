@@ -26,10 +26,10 @@
   },
   "test": {
     "use_best_model": 0,
-    "test_set_dir": "/home/yuyang/dataset/VOCdevkit/VOC2012/JPEGImages",
+    "test_set_dir": "/home/yuyang/dataset/dog",
     "output_result_dir": "/home/yuyang/dataset/output_result",
-    "nms_iou_thresh": 0.05,
-    "confidence_thresh": 0.3,
+    "nms_iou_thresh": 0.1,
+    "confidence_thresh": 0.2,
     "use_cuda": 1
   }
 }
