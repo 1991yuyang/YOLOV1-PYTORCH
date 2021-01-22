@@ -20,7 +20,7 @@
     "batch_size": 8,
     "dataloader_num_workers": 8,
     "epoch": 120,
-    "weight_decay": 0.0008,
+    "weight_decay": 0.0001,
     "lr_shrink_rate": 0.1,
     "lr_shrink_epoch": 30
   },
