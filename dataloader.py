@@ -52,7 +52,7 @@ class YoloSet(data.Dataset):
         img_height = img.shape[0]
         img_width = img.shape[1]
         if self.mode == "train":
-            img, is_flipx, is_flipy, angle, rot_mat, img_height, img_width = self.data_aug(img)
+            img, is_flipx, rot_mat, img_height, img_width = self.data_aug(img)
         img = cv2.resize(img, (self.img_size, self.img_size))
         img = np.transpose(img / 255, axes=[2, 0, 1])
         grid_cell_width = img_width / self.S
@@ -85,10 +85,6 @@ class YoloSet(data.Dataset):
                 xmax_temp = xmax
                 xmax = img_width - xmin
                 xmin = img_width - xmax_temp
-            if self.mode == "train" and is_flipy:
-                ymax_temp = ymax
-                ymax = img_height - ymin
-                ymin = img_height - ymax_temp
             center_x = (xmin + xmax) / 2
             center_y = (ymin + ymax) / 2
             x_grid_index = int(center_x // grid_cell_width)
@@ -116,39 +112,10 @@ class YoloSet(data.Dataset):
         return len(self.img_paths)
 
     def data_aug(self, img):
-        img, angle, rot_mat, img_height, img_width = self.rotate(img)
+        img, rot_mat, img_height, img_width = self.rotate(img)
         img, is_flipx = self.random_flipx(img)
-        img, is_flipy = self.random_flipy(img)
         img = self.add_noise(img)
-        img = self.random_bright(img)
-        img = self.random_contrast(img)
-        img = self.random_swap(img)
-        return img, is_flipx, is_flipy, angle, rot_mat, img_height, img_width
-
-    def random_bright(self, img, delta=32):
-        if rd.random() < 0.5:
-            delta = rd.uniform(-delta, delta)
-            img = img + delta
-            img = img.astype(np.uint8)
-            img = img.clip(min=0, max=255)
-        return img
-
-    def random_swap(self, img):
-        perms = ((0, 1, 2), (0, 2, 1),
-                 (1, 0, 2), (1, 2, 0),
-                 (2, 0, 1), (2, 1, 0))
-        if rd.random() < 0.5:
-            swap = perms[rd.randint(0, len(perms))]
-            img = img[:, :, swap]
-        return img
-
-    def random_contrast(self, img, lower=0.5, upper=1.5):
-        if rd.random() < 0.5:
-            alpha = rd.uniform(lower, upper)
-            img = img * alpha
-            img = img.astype(np.uint8)
-            img = img.clip(min=0, max=255)
-        return img
+        return img, is_flipx, rot_mat, img_height, img_width
 
     def add_noise(self, img, threshold=32):
         if rd.random() < 0.5:
@@ -161,12 +128,6 @@ class YoloSet(data.Dataset):
     def random_flipx(self, img):
         if rd.random() < 0.5:
             img = cv2.flip(img, 1)
-            return img, True
-        return img, False
-
-    def random_flipy(self, img):
-        if rd.random() < 0.5:
-            img = cv2.flip(img, 0)
             return img, True
         return img, False
 
@@ -184,7 +145,7 @@ class YoloSet(data.Dataset):
         img = cv2.warpAffine(img, rot_mat, (int(np.ceil(nw)), int(np.ceil(nh))), flags=cv2.INTER_LANCZOS4)
         img_height = img.shape[0]
         img_width = img.shape[1]
-        return img, angle, rot_mat, img_height, img_width
+        return img, rot_mat, img_height, img_width
 
 
 if __name__ == "__main__":
