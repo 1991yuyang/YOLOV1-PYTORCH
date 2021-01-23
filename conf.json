@@ -25,11 +25,11 @@
     "lr_shrink_epoch": 30
   },
   "test": {
-    "use_best_model": 0,
-    "test_set_dir": "/home/yuyang/dataset/dog",
+    "use_best_model": 1,
+    "test_set_dir": "/home/yuyang/dataset/VOCdevkit (3)/VOC2007/JPEGImages",
     "output_result_dir": "/home/yuyang/dataset/output_result",
     "nms_iou_thresh": 0.1,
-    "confidence_thresh": 0.2,
+    "confidence_thresh": 0.3,
     "use_cuda": 1
   }
 }
